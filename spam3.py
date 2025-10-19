@@ -11,13 +11,13 @@ import itertools, time, os
 init(autoreset=True)
 
 # ===== CONFIG =====
-API_ID = 11630722
-API_HASH = "17992c34fb75f55adcf886b2892fce60"
+API_ID = 23541688
+API_HASH = "c8c5b0b2a0e15badc4133e0d27c7f017"
 TARGET_GROUP = "@khugiaitrisss"
 SESSION_NAME = "vip_sender_online"
 DELAY_SECONDS = 10 * 60  # 10 phút
-PHONE = "+84939642195"
-PASSWORD = ""
+PHONE = "+84901067975"
+PASSWORD = "Demo@123"
 KEY_URL = "https://raw.githubusercontent.com/QuaTang382/sms/main/key.txt"  # Link Pastebin chứa key
 # ===================
 
@@ -154,3 +154,4 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
 
         print(Fore.YELLOW + "\nĐã hủy bởi người dùng.")
+
