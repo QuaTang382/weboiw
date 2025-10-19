@@ -18,7 +18,7 @@ SESSION_NAME = "vip_sender_online"
 DELAY_SECONDS = 10 * 60  # 10 phút
 PHONE = "+84939642195"
 PASSWORD = ""
-KEY_URL = "https://pastebin.com/raw/hyXG5Q3i"  # Link Pastebin chứa key
+KEY_URL = "https://raw.githubusercontent.com/QuaTang382/sms/main/key.txt"  # Link Pastebin chứa key
 # ===================
 
 DATA_DIR = Path.home() / ".vip_bot_online"
@@ -152,4 +152,5 @@ if __name__ == "__main__":
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
+
         print(Fore.YELLOW + "\nĐã hủy bởi người dùng.")
