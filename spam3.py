@@ -19,7 +19,7 @@ DELAY_SECONDS = 10 * 60  # 10 phút
 PHONE = "+84862367753"
 PASSWORD = "Demo@123"
 KEY_URL = "https://raw.githubusercontent.com/QuaTang382/sms/main/key.txt"
-MAINTENANCE_URL = "https://raw.githubusercontent.com/QuaTang382/sms/main/maintain.txt"
+MAINTENANCE_URL = "https://raw.githubusercontent.com/QuaTang382/sms/main/baotri.txt"
 # ===================
 
 DATA_DIR = Path.home() / ".vip_bot_online"
@@ -205,3 +205,4 @@ if __name__ == "__main__":
         asyncio.run(main())
     except KeyboardInterrupt:
         print(Fore.YELLOW + "\nĐã hủy bởi người dùng.")
+
