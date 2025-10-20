@@ -20,6 +20,7 @@ PHONE = "+84862367753"
 PASSWORD = "Demo@123"
 KEY_URL = "https://raw.githubusercontent.com/QuaTang382/sms/main/key.txt"
 MAINTENANCE_URL = "https://raw.githubusercontent.com/QuaTang382/sms/main/baotri.txt"
+UPDATE_URL = "https://raw.githubusercontent.com/QuaTang382/sms/main/update.txt"
 # ===================
 
 DATA_DIR = Path.home() / ".vip_bot_online"
@@ -132,6 +133,18 @@ async def check_maintenance():
                     if "on" in text:
                         print(Fore.RED + "\n🚧 Tool đang bảo trì. Vui lòng quay lại sau.")
                         return True
+async def show_update_notice():
+    """Hiển thị thông báo cập nhật mới nhất"""
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(UPDATE_URL) as resp:
+                if resp.status == 200:
+                    text = (await resp.text()).strip()
+                    if text:
+                        print(Fore.CYAN + "\n📢 CẬP NHẬT MỚI:")
+                        print(Fore.YELLOW + text + "\n")
+    except Exception as e:
+        print(Fore.YELLOW + f"Lỗi khi tải thông báo update: {e}")
     except Exception as e:
         print(Fore.YELLOW + f"Lỗi khi kiểm tra bảo trì: {e}")
     return False
@@ -140,6 +153,8 @@ async def main():
     # Kiểm tra bảo trì
     if await check_maintenance():
         return
+        
+    await show_update_notice()
 
     user_key = getpass.getpass(Fore.YELLOW + "Nhập KEY của bạn: ").strip()
     ok, msg = await check_key_online(user_key)
@@ -205,4 +220,5 @@ if __name__ == "__main__":
         asyncio.run(main())
     except KeyboardInterrupt:
         print(Fore.YELLOW + "\nĐã hủy bởi người dùng.")
+
 
