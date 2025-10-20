@@ -146,6 +146,8 @@ async def show_update_notice():
     except Exception as e:
         print(Fore.YELLOW + f"Lỗi khi tải thông báo update: {e}")
     except Exception as e:
+        print(Fore.YELLOW + f"Lỗi khi tải thông báo update: {e}")
+    except Exception as e:
         print(Fore.YELLOW + f"Lỗi khi kiểm tra bảo trì: {e}")
     return False
 async def main():
@@ -220,5 +222,6 @@ if __name__ == "__main__":
         asyncio.run(main())
     except KeyboardInterrupt:
         print(Fore.YELLOW + "\nĐã hủy bởi người dùng.")
+
 
 
