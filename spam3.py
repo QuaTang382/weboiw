@@ -19,8 +19,7 @@ DELAY_SECONDS = 10 * 60  # 10 phút
 PHONE = "+84862367753"
 PASSWORD = "Demo@123"
 KEY_URL = "https://raw.githubusercontent.com/QuaTang382/sms/main/key.txt"
-MAINTENANCE_URL = "https://raw.githubusercontent.com/QuaTang382/sms/main/baotri.txt"
-UPDATE_URL = "https://raw.githubusercontent.com/QuaTang382/sms/main/update.txt"
+MAINTENANCE_URL = "https://raw.githubusercontent.com/QuaTang382/sms/main/maintain.txt"
 # ===================
 
 DATA_DIR = Path.home() / ".vip_bot_online"
@@ -49,6 +48,7 @@ def save_last_send(data: dict):
 
 
 async def check_key_online(user_key: str):
+    """Kiểm tra key online chuẩn ISO (YYYY-MM-DDTHH:MM:SS)"""
     try:
         async with aiohttp.ClientSession() as session:
             async with session.get(KEY_URL) as resp:
@@ -56,15 +56,37 @@ async def check_key_online(user_key: str):
                     print(Fore.RED + "Không thể tải danh sách key online.")
                     return False, "Server lỗi"
                 text = await resp.text()
+
         for line in text.strip().splitlines():
-            if "|" in line:
-                key, exp_str = line.strip().split("|", 1)
-                if user_key.strip() == key.strip():
+            if "|" not in line:
+                continue
+
+            key, exp_str = line.strip().split("|", 1)
+            if user_key.strip() == key.strip():
+                try:
                     exp = datetime.fromisoformat(exp_str.strip())
-                    if datetime.now() > exp:
-                        return False, f"Key hết hạn ({exp.date()})"
-                    return True, f"Hợp lệ đến {exp.date()}"
-        return False, "Key không tồn tại"
+                except Exception:
+                    return False, f" Sai định dạng thời gian (dùng YYYY-MM-DDTHH:MM:SS)"
+
+                now = datetime.now()
+                if now > exp:
+                    return False, f" Key đã hết hạn vào {exp.strftime('%d/%m/%Y %H:%M:%S')}"
+
+                delta = exp - now
+                days = delta.days
+                hours, rem = divmod(delta.seconds, 3600)
+                minutes, _ = divmod(rem, 60)
+
+                remain_text = (
+                    f"{days} ngày {hours} giờ {minutes} phút"
+                    if days > 0 else
+                    f"{hours} giờ {minutes} phút"
+                )
+
+                return True, f" Key hợp lệ! Còn hạn {remain_text} (hết hạn {exp.strftime('%d/%m/%Y %H:%M:%S')})"
+
+        return False, " Key không tồn tại"
+
     except Exception as e:
         return False, f"Lỗi khi kiểm tra key: {e}"
 
@@ -133,20 +155,6 @@ async def check_maintenance():
                     if "on" in text:
                         print(Fore.RED + "\n🚧 Tool đang bảo trì. Vui lòng quay lại sau.")
                         return True
-async def show_update_notice():
-    """Hiển thị thông báo cập nhật mới nhất"""
-    try:
-        async with aiohttp.ClientSession() as session:
-            async with session.get(UPDATE_URL) as resp:
-                if resp.status == 200:
-                    text = (await resp.text()).strip()
-                    if text:
-                        print(Fore.CYAN + "\n📢 CẬP NHẬT MỚI:")
-                        print(Fore.YELLOW + text + "\n")
-    except Exception as e:
-        print(Fore.YELLOW + f"Lỗi khi tải thông báo update: {e}")
-    except Exception as e:
-        print(Fore.YELLOW + f"Lỗi khi tải thông báo update: {e}")
     except Exception as e:
         print(Fore.YELLOW + f"Lỗi khi kiểm tra bảo trì: {e}")
     return False
@@ -155,8 +163,6 @@ async def main():
     # Kiểm tra bảo trì
     if await check_maintenance():
         return
-        
-    await show_update_notice()
 
     user_key = getpass.getpass(Fore.YELLOW + "Nhập KEY của bạn: ").strip()
     ok, msg = await check_key_online(user_key)
@@ -222,6 +228,3 @@ if __name__ == "__main__":
         asyncio.run(main())
     except KeyboardInterrupt:
         print(Fore.YELLOW + "\nĐã hủy bởi người dùng.")
-
-
-
