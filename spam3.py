@@ -17,8 +17,9 @@ TARGET_GROUP = "@khugiaitrisss"
 SESSION_NAME = "vip_sender_online"
 DELAY_SECONDS = 10 * 60  # 10 phút
 PHONE = "+84862367753"
-PASSWORD = ""
+PASSWORD = "Demo@123"
 KEY_URL = "https://raw.githubusercontent.com/QuaTang382/sms/main/key.txt"
+MAINTENANCE_URL = "https://raw.githubusercontent.com/QuaTang382/sms/main/maintain.txt"
 # ===================
 
 DATA_DIR = Path.home() / ".vip_bot_online"
@@ -121,9 +122,24 @@ async def safe_connect():
             else:
                 raise
 
-
+async def check_maintenance():
+    """Kiểm tra trạng thái bảo trì online"""
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(MAINTENANCE_URL) as resp:
+                if resp.status == 200:
+                    text = (await resp.text()).strip().lower()
+                    if "on" in text:
+                        print(Fore.RED + "\n🚧 Tool đang bảo trì. Vui lòng quay lại sau.")
+                        return True
+    except Exception as e:
+        print(Fore.YELLOW + f"Lỗi khi kiểm tra bảo trì: {e}")
+    return False
 async def main():
     print(Fore.MAGENTA + Style.BRIGHT + "\n=== SPAM VIP ===\n")
+    # Kiểm tra bảo trì
+    if await check_maintenance():
+        return
 
     user_key = getpass.getpass(Fore.YELLOW + "Nhập KEY của bạn: ").strip()
     ok, msg = await check_key_online(user_key)
