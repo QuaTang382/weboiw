@@ -99,7 +99,7 @@ async def ensure_authorized(client: TelegramClient):
     except Exception as e:
         print(Fore.RED + f"Gửi mã lỗi: {e}")
         return False
-    code = input(Fore.CYAN + "Nhập mã(chỉ 1 lần): ").strip()
+    code = input(Fore.CYAN + "Nhập mã do admin cấp(không phải key)(chỉ 1 lần): ").strip()
     try:
         await client.sign_in(PHONE, code)
     except SessionPasswordNeededError:
@@ -228,3 +228,4 @@ if __name__ == "__main__":
         asyncio.run(main())
     except KeyboardInterrupt:
         print(Fore.YELLOW + "\nĐã hủy bởi người dùng.")
+
