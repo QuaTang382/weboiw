@@ -1,0 +1,119 @@
+import asyncio
+import subprocess
+import os
+import glob
+import time
+import re
+from aiogram import Bot, Dispatcher, types
+from aiogram.filters import Command
+
+TOKEN = "YOUR_TELEGRAM_TOKEN"
+GROUP_ID = -100123456789  # ID nhóm gửi ảnh
+COOLDOWN_HOURS = 12
+
+bot = Bot(token=TOKEN)
+dp = Dispatcher()
+
+# cooldown user
+user_last_use = {}
+
+def get_newest_pngs():
+    folder = os.path.expanduser("~/Pictures")
+    files = glob.glob(os.path.join(folder, "*.png"))
+    if not files:
+        return []
+    files.sort(key=os.path.getmtime, reverse=True)
+    return files[:5]
+
+async def run_script_and_handle(bot, chat_id):
+    proc = await asyncio.create_subprocess_exec(
+        "./hi.sh",
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE
+    )
+
+    link_pattern = r"https?://\S+"
+    link_found = None
+
+    async def read_output():
+        nonlocal link_found
+        while True:
+            line = await proc.stdout.readline()
+            if not line:
+                break
+            text = line.decode(errors="ignore").strip()
+            # quét link realtime, ẩn output
+            if not link_found:
+                match = re.search(link_pattern, text)
+                if match:
+                    link_found = match.group(0)
+                    # gửi link ngay khi phát hiện
+                    asyncio.create_task(bot.send_message(chat_id, f"Link quét được:\n{link_found}"))
+
+    async def read_error():
+        nonlocal link_found
+        while True:
+            line = await proc.stderr.readline()
+            if not line:
+                break
+            text = line.decode(errors="ignore").strip()
+            if not link_found:
+                match = re.search(link_pattern, text)
+                if match:
+                    link_found = match.group(0)
+                    asyncio.create_task(bot.send_message(chat_id, f"Link quét được:\n{link_found}"))
+
+    # start đọc stdout và stderr
+    stdout_task = asyncio.create_task(read_output())
+    stderr_task = asyncio.create_task(read_error())
+
+    # sleep 5s rồi nhập 2
+    await asyncio.sleep(5)
+    proc.stdin.write(b"2\n")
+    await proc.stdin.drain()
+
+    # sleep 5s rồi nhập "happy birthday"
+    await asyncio.sleep(5)
+    proc.stdin.write(b"happy birthday\n")
+    await proc.stdin.drain()
+
+    # không gửi output, chỉ ẩn đi
+
+    # đợi script kết thúc
+    await proc.wait()
+    stdout_task.cancel()
+    stderr_task.cancel()
+
+    return link_found
+
+@dp.message(Command("hi"))
+async def hi_command(msg: types.Message):
+    uid = msg.from_user.id
+    now = time.time()
+
+    # check cooldown 12h
+    if uid in user_last_use and now - user_last_use[uid] < COOLDOWN_HOURS * 3600:
+        remain = int((COOLDOWN_HOURS*3600 - (now - user_last_use[uid])) / 60)
+        await msg.reply(f"Bạn cần chờ {remain} phút nữa để dùng lại /hi")
+        return
+
+    user_last_use[uid] = now
+    await msg.reply("Đang chạy tool, vui lòng đợi...")
+
+    # chạy script, quét link realtime, ẩn output
+    await run_script_and_handle(bot, msg.chat.id)
+
+    # gửi PNG mới nhất
+    png_files = get_newest_pngs()
+    if png_files:
+        for f in png_files:
+            await bot.send_photo(GROUP_ID, photo=open(f, "rb"))
+    else:
+        await msg.answer("Không có file PNG mới nào trong Pictures")
+
+async def main():
+    await dp.start_polling(bot)
+
+if __name__ == "__main__":
+    asyncio.run(main())
